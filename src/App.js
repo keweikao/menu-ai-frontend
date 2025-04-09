@@ -134,7 +134,6 @@ function App() {
         const response = await axios.post(`${backendUrl}/api/chat`,
             { conversationId, message: messageToSend },
             // Removed Authorization header
-            // { headers: { Authorization: `Bearer ${token}` } }
         );
         console.log("Chat response received:", response.data);
         const aiMessage = { sender: 'ai', content: response.data.response };
@@ -169,7 +168,6 @@ function App() {
         const response = await axios.post(`${backendUrl}/api/finalize`,
             { conversationId },
             // Removed Authorization header
-            // { headers: { Authorization: `Bearer ${token}` } }
         );
         console.log("Final report received:", response.data);
         setFinalReport(response.data.finalReport);
@@ -205,7 +203,13 @@ function App() {
         {/* Upload Section */}
         <section style={styles.uploadSection}>
           <h2>1. 上傳菜單</h2>
-          <input type="file" onChange={handleFileChange} disabled={isUploading} />
+           {/* Add accept attribute to limit file types */}
+           <input
+              type="file"
+              onChange={handleFileChange}
+              disabled={isUploading}
+              accept="image/jpeg, image/png, application/pdf, text/csv, text/plain, .jpg, .jpeg, .png, .pdf, .csv, .txt"
+            />
           <button onClick={handleUpload} disabled={isUploading || !selectedFile} style={styles.actionButton}>
             {isUploading ? `上傳中... ${uploadProgress}%` : '上傳並開始分析'}
           </button>
@@ -264,9 +268,6 @@ function App() {
 const styles = {
   container: { fontFamily: 'Arial, sans-serif', maxWidth: '800px', margin: '0 auto', padding: '20px', border: '1px solid #ddd', borderRadius: '8px', background: '#fff' },
   header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #ccc', paddingBottom: '15px', marginBottom: '25px' },
-  // userInfo: { display: 'flex', alignItems: 'center', background: '#f0f0f0', padding: '5px 10px', borderRadius: '4px' }, // Removed
-  // logoutButton: { marginLeft: '15px', padding: '6px 12px', cursor: 'pointer', background: '#dc3545', color: 'white', border: 'none', borderRadius: '4px' }, // Removed
-  // loginButton: { padding: '10px 15px', cursor: 'pointer', backgroundColor: '#4285F4', color: 'white', border: 'none', borderRadius: '4px', fontSize: '1em' }, // Removed
   error: { color: 'red', border: '1px solid red', padding: '12px', marginBottom: '20px', borderRadius: '4px', background: '#fdd' },
   main: { display: 'flex', flexDirection: 'column', gap: '30px' },
   uploadSection: { border: '1px solid #eee', padding: '20px', borderRadius: '8px', background: '#f9f9f9' },
