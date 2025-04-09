@@ -27,13 +27,7 @@ function SimpleMarkdown({ text }) {
 
 function App() {
   // --- State Variables ---
-  const [token, setToken] = useState(() => {
-      console.log("Initializing token state from localStorage");
-      const storedToken = localStorage.getItem('jwtToken');
-      console.log("Stored token:", storedToken);
-      return storedToken || null;
-  });
-  const [userEmail, setUserEmail] = useState('');
+  // Removed token and userEmail state
   const [selectedFile, setSelectedFile] = useState(null);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
@@ -48,80 +42,10 @@ function App() {
 
   // --- Backend URL ---
   const backendUrl = process.env.REACT_APP_BACKEND_URL || 'http://localhost:3001'; // Default for local dev
-  console.log("Backend URL:", backendUrl); // Log backend URL
+  console.log("Backend URL:", backendUrl);
 
-  // --- Authentication ---
-  useEffect(() => {
-    console.log("Auth Effect running - checking URL params");
-    const urlParams = new URLSearchParams(window.location.search);
-    const tokenFromUrl = urlParams.get('token');
-    const authError = urlParams.get('error');
-
-    if (authError) {
-        console.error("Auth Error from URL:", authError);
-        setError('Google登入失敗，請重試。');
-        window.history.replaceState({}, document.title, "/"); // Clean URL
-    } else if (tokenFromUrl) {
-      console.log("Token received from URL:", tokenFromUrl);
-      localStorage.setItem('jwtToken', tokenFromUrl);
-      setToken(tokenFromUrl); // Update state, triggering the other effect
-      window.history.replaceState({}, document.title, "/"); // Clean URL
-    }
-    // No else needed here, the other effect handles existing tokens
-  }, []); // Run only once on mount to check URL params
-
-  const fetchUserInfo = useCallback(async (currentToken) => {
-    if (!currentToken) {
-        console.log("fetchUserInfo called but currentToken is null or empty");
-        return;
-    }
-    console.log("Attempting to fetch user info with token:", currentToken);
-    try {
-      const response = await axios.get(`${backendUrl}/api/user/me`, {
-        headers: { Authorization: `Bearer ${currentToken}` }
-      });
-      setUserEmail(response.data.email);
-      setError(''); // Clear previous errors
-      console.log("User info fetched successfully:", response.data.email);
-    } catch (err) {
-      console.error("Failed to fetch user info:", err.response ? err.response.data : err.message);
-      handleLogout(); // Log out if token is invalid/expired
-      setError('登入驗證失敗或 Token 已過期，請重新登入。');
-    }
-  }, [backendUrl]); // Include backendUrl in dependencies
-
-  // Effect to fetch user info when token state is confirmed
-  useEffect(() => {
-    console.log("Token State Effect running. Current token:", token);
-    if (token) {
-        fetchUserInfo(token);
-    } else {
-        console.log("Token is null or empty, skipping fetchUserInfo");
-        // Ensure userEmail is cleared if token becomes null
-        setUserEmail('');
-    }
-  }, [token, fetchUserInfo]); // Run when token or fetchUserInfo changes
-
-
-  const handleLogin = () => {
-    console.log("handleLogin called. Redirecting to:", `${backendUrl}/auth/google`);
-    // Redirect to backend Google auth endpoint
-    window.location.href = `${backendUrl}/auth/google`;
-  };
-
-  const handleLogout = () => {
-    console.log("handleLogout called.");
-    localStorage.removeItem('jwtToken');
-    setToken(null);
-    // setUserEmail(''); // Already handled by the token effect
-    setMessages([]);
-    setConversationId(null);
-    setError('');
-    setFinalReport('');
-    // Optionally redirect to home or refresh
-    // window.location.href = '/'; // Redirecting might clear console logs too quickly
-    console.log("Logged out, state cleared.");
-  };
+  // --- Authentication Removed ---
+  // Removed useEffect for token checking and fetchUserInfo
 
   // --- File Handling & Upload ---
   const handleFileChange = (event) => {
@@ -132,11 +56,7 @@ function App() {
 
   const handleUpload = async () => {
     console.log("handleUpload called.");
-    if (!token) {
-      console.log("Upload prevented: No token.");
-      setError('請先登入。');
-      return;
-    }
+    // Removed token check
     if (!selectedFile) {
       console.log("Upload prevented: No file selected.");
       setError('請先選擇要上傳的菜單檔案。');
@@ -157,7 +77,7 @@ function App() {
       const response = await axios.post(`${backendUrl}/api/upload`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
-          Authorization: `Bearer ${token}`
+          // Removed Authorization header
         },
         onUploadProgress: (progressEvent) => {
           if (progressEvent.total) {
@@ -172,10 +92,8 @@ function App() {
       setConversationId(response.data.conversationId);
       setMessages([{ sender: 'ai', content: response.data.initialResponse }]);
       setSelectedFile(null); // Clear file input after successful upload
-      // Clear the file input visually (find a better React way if possible)
       const fileInput = document.querySelector('input[type="file"]');
       if (fileInput) fileInput.value = '';
-
 
     } catch (err) {
       console.error('Upload failed:', err.response ? err.response.data : err.message);
@@ -205,8 +123,8 @@ function App() {
 
     const userMessage = { sender: 'user', content: currentMessage };
     setMessages(prev => [...prev, userMessage]);
-    const messageToSend = currentMessage; // Capture message before clearing
-    setCurrentMessage(''); // Clear input
+    const messageToSend = currentMessage;
+    setCurrentMessage('');
     setIsLoadingResponse(true);
     setError('');
     setFinalReport('');
@@ -214,8 +132,9 @@ function App() {
 
     try {
         const response = await axios.post(`${backendUrl}/api/chat`,
-            { conversationId, message: messageToSend }, // Use captured message
-            { headers: { Authorization: `Bearer ${token}` } }
+            { conversationId, message: messageToSend },
+            // Removed Authorization header
+            // { headers: { Authorization: `Bearer ${token}` } }
         );
         console.log("Chat response received:", response.data);
         const aiMessage = { sender: 'ai', content: response.data.response };
@@ -223,8 +142,6 @@ function App() {
     } catch (err) {
         console.error('Chat failed:', err.response ? err.response.data : err.message);
         setError(`訊息傳送失敗: ${err.response?.data?.error || err.message}`);
-        // Optional: Remove the user message if sending failed? Or show error indicator?
-        // setMessages(prev => prev.slice(0, -1)); // Remove last (user) message on error
     } finally {
         setIsLoadingResponse(false);
         console.log("Chat response processing finished.");
@@ -251,7 +168,8 @@ function App() {
     try {
         const response = await axios.post(`${backendUrl}/api/finalize`,
             { conversationId },
-            { headers: { Authorization: `Bearer ${token}` } }
+            // Removed Authorization header
+            // { headers: { Authorization: `Bearer ${token}` } }
         );
         console.log("Final report received:", response.data);
         setFinalReport(response.data.finalReport);
@@ -272,93 +190,83 @@ function App() {
   }, [messages]);
 
   // --- Render Logic ---
-  console.log("Rendering App component. Token:", !!token, "UserEmail:", userEmail); // Log render state
+  console.log("Rendering App component."); // Simplified log
   return (
     <div style={styles.container}>
       <header style={styles.header}>
         <h1>菜單優化助手</h1>
-        {token ? (
-          <div style={styles.userInfo}>
-            <span>{userEmail || '讀取中...'}</span> {/* Show loading state */}
-            <button onClick={handleLogout} style={styles.logoutButton}>登出</button>
-          </div>
-        ) : (
-          <button onClick={handleLogin} style={styles.loginButton}>使用 Google 登入</button>
-        )}
+        {/* Removed Login/Logout Buttons and User Email */}
       </header>
 
       {error && <p style={styles.error}>{error}</p>}
 
-      {/* Render main content only if token exists */}
-      {token && (
-        <main style={styles.main}>
-          {/* Upload Section */}
-          <section style={styles.uploadSection}>
-            <h2>1. 上傳菜單</h2>
-            <input type="file" onChange={handleFileChange} disabled={isUploading} />
-            <button onClick={handleUpload} disabled={isUploading || !selectedFile} style={styles.actionButton}>
-              {isUploading ? `上傳中... ${uploadProgress}%` : '上傳並開始分析'}
-            </button>
-            {isUploading && <progress value={uploadProgress} max="100" style={styles.progressBar}></progress>}
+      {/* Render main content directly */}
+      <main style={styles.main}>
+        {/* Upload Section */}
+        <section style={styles.uploadSection}>
+          <h2>1. 上傳菜單</h2>
+          <input type="file" onChange={handleFileChange} disabled={isUploading} />
+          <button onClick={handleUpload} disabled={isUploading || !selectedFile} style={styles.actionButton}>
+            {isUploading ? `上傳中... ${uploadProgress}%` : '上傳並開始分析'}
+          </button>
+          {isUploading && <progress value={uploadProgress} max="100" style={styles.progressBar}></progress>}
+        </section>
+
+        {/* Chat Section - Render only if conversation has started */}
+        {conversationId && (
+          <section style={styles.chatSection}>
+            <h2>2. 與 AI 對話優化</h2>
+            <div style={styles.messageContainer}>
+              {messages.map((msg, index) => (
+                <div key={index} style={msg.sender === 'user' ? styles.userMessage : styles.aiMessage}>
+                  {msg.sender === 'ai' ? <SimpleMarkdown text={msg.content} /> : <pre style={styles.preWrap}>{msg.content}</pre>}
+                </div>
+              ))}
+              {isLoadingResponse && <div style={styles.loading}>AI 回應中...</div>}
+              <div ref={messagesEndRef} />
+            </div>
+            <div style={styles.inputArea}>
+              <textarea
+                rows="3"
+                value={currentMessage}
+                onChange={(e) => setCurrentMessage(e.target.value)}
+                placeholder="輸入你的回饋或指示..."
+                disabled={isLoadingResponse}
+                style={styles.textarea}
+                onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendMessage(); } }}
+              />
+              <button onClick={handleSendMessage} disabled={isLoadingResponse || !currentMessage.trim()} style={styles.actionButton}>
+                送出訊息
+              </button>
+            </div>
+             <button onClick={handleFinalize} disabled={isLoadingResponse || messages.length === 0} style={{...styles.actionButton, marginTop: '10px'}}>
+                產出最終版本確定
+             </button>
           </section>
+        )}
 
-          {/* Chat Section - Render only if conversation has started */}
-          {conversationId && (
-            <section style={styles.chatSection}>
-              <h2>2. 與 AI 對話優化</h2>
-              <div style={styles.messageContainer}>
-                {messages.map((msg, index) => (
-                  <div key={index} style={msg.sender === 'user' ? styles.userMessage : styles.aiMessage}>
-                    {/* Render AI messages using SimpleMarkdown */}
-                    {msg.sender === 'ai' ? <SimpleMarkdown text={msg.content} /> : <pre style={styles.preWrap}>{msg.content}</pre>}
-                  </div>
-                ))}
-                {isLoadingResponse && <div style={styles.loading}>AI 回應中...</div>}
-                <div ref={messagesEndRef} /> {/* Anchor for scrolling */}
-              </div>
-              <div style={styles.inputArea}>
-                <textarea
-                  rows="3"
-                  value={currentMessage}
-                  onChange={(e) => setCurrentMessage(e.target.value)}
-                  placeholder="輸入你的回饋或指示..."
-                  disabled={isLoadingResponse}
-                  style={styles.textarea}
-                  onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendMessage(); } }} // Send on Enter
-                />
-                <button onClick={handleSendMessage} disabled={isLoadingResponse || !currentMessage.trim()} style={styles.actionButton}>
-                  送出訊息
-                </button>
-              </div>
-               <button onClick={handleFinalize} disabled={isLoadingResponse || messages.length === 0} style={{...styles.actionButton, marginTop: '10px'}}>
-                  產出最終版本確定
-               </button>
+        {/* Final Report Section - Render only if final report exists */}
+        {finalReport && (
+            <section style={styles.finalReportSection}>
+                <h2>最終優化建議報告</h2>
+                <div style={styles.finalReportContent}>
+                    <SimpleMarkdown text={finalReport} />
+                </div>
             </section>
-          )}
+        )}
 
-          {/* Final Report Section - Render only if final report exists */}
-          {finalReport && (
-              <section style={styles.finalReportSection}>
-                  <h2>最終優化建議報告</h2>
-                  <div style={styles.finalReportContent}>
-                      <SimpleMarkdown text={finalReport} />
-                  </div>
-              </section>
-          )}
-
-        </main>
-      )}
+      </main>
     </div>
   );
 }
 
-// --- Basic Styles --- (Consider moving to a CSS file)
+// --- Basic Styles --- (Copied from previous version)
 const styles = {
   container: { fontFamily: 'Arial, sans-serif', maxWidth: '800px', margin: '0 auto', padding: '20px', border: '1px solid #ddd', borderRadius: '8px', background: '#fff' },
   header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #ccc', paddingBottom: '15px', marginBottom: '25px' },
-  userInfo: { display: 'flex', alignItems: 'center', background: '#f0f0f0', padding: '5px 10px', borderRadius: '4px' },
-  logoutButton: { marginLeft: '15px', padding: '6px 12px', cursor: 'pointer', background: '#dc3545', color: 'white', border: 'none', borderRadius: '4px' },
-  loginButton: { padding: '10px 15px', cursor: 'pointer', backgroundColor: '#4285F4', color: 'white', border: 'none', borderRadius: '4px', fontSize: '1em' },
+  // userInfo: { display: 'flex', alignItems: 'center', background: '#f0f0f0', padding: '5px 10px', borderRadius: '4px' }, // Removed
+  // logoutButton: { marginLeft: '15px', padding: '6px 12px', cursor: 'pointer', background: '#dc3545', color: 'white', border: 'none', borderRadius: '4px' }, // Removed
+  // loginButton: { padding: '10px 15px', cursor: 'pointer', backgroundColor: '#4285F4', color: 'white', border: 'none', borderRadius: '4px', fontSize: '1em' }, // Removed
   error: { color: 'red', border: '1px solid red', padding: '12px', marginBottom: '20px', borderRadius: '4px', background: '#fdd' },
   main: { display: 'flex', flexDirection: 'column', gap: '30px' },
   uploadSection: { border: '1px solid #eee', padding: '20px', borderRadius: '8px', background: '#f9f9f9' },
